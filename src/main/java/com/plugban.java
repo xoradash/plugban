@@ -18,9 +18,9 @@ public final class plugban extends JavaPlugin {
         // Инициализируем обработчик базы данных
         try {
             databaseHandler = new DatabaseHandler(this);
-            getLogger().info("База данных успешно подключена!");
+            getLogger().info("База данных успешно инициализирована!");
         } catch (Exception e) {
-            getLogger().severe("Не удалось подключиться к базе данных: " + e.getMessage());
+            getLogger().severe("Не удалось инициализировать базу данных: " + e.getMessage());
             getLogger().severe("Плагин будет отключен!");
             getServer().getPluginManager().disablePlugin(this);
             return;

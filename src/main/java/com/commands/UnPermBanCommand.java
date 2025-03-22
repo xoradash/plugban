@@ -8,6 +8,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 public class UnPermBanCommand implements CommandExecutor {
@@ -31,30 +33,66 @@ public class UnPermBanCommand implements CommandExecutor {
 
         // Проверяем, является ли аргумент IP-адресом
         if (ipPattern.matcher(targetNameOrIP).matches()) {
-            // Проверяем, забанен ли IP
-            if (!databaseHandler.isIPBanned(targetNameOrIP)) {
-                sender.sendMessage(ChatColor.RED + "IP-адрес " + targetNameOrIP + " не заблокирован.");
-                return true;
-            }
+            // Асинхронно проверяем, забанен ли IP
+            CompletableFuture<Boolean> isBannedFuture = databaseHandler.isIPBannedAsync(targetNameOrIP);
 
-            // Выполняем разбан по IP
-            databaseHandler.unbanIP(targetNameOrIP);
+            Bukkit.getScheduler().runTaskAsynchronously(databaseHandler.getPlugin(), () -> {
+                try {
+                    if (!isBannedFuture.get()) {
+                        // Выполняем в основном потоке для отправки сообщения
+                        Bukkit.getScheduler().runTask(databaseHandler.getPlugin(), () -> {
+                            sender.sendMessage(ChatColor.RED + "IP-адрес " + targetNameOrIP + " не заблокирован.");
+                        });
+                        return;
+                    }
 
-            sender.sendMessage(ChatColor.GREEN + "IP-адрес " + targetNameOrIP + " был разблокирован.");
-            Bukkit.broadcastMessage(ChatColor.GREEN + "IP-адрес был разблокирован администратором " + senderName);
+                    // Выполняем разбан по IP (асинхронно)
+                    databaseHandler.unbanIP(targetNameOrIP);
+
+                    // Уведомляем игроков (в основном потоке)
+                    Bukkit.getScheduler().runTask(databaseHandler.getPlugin(), () -> {
+                        sender.sendMessage(ChatColor.GREEN + "IP-адрес " + targetNameOrIP + " был разблокирован.");
+                        Bukkit.broadcastMessage(ChatColor.GREEN + "IP-адрес был разблокирован администратором " + senderName);
+                    });
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                    // Выполняем в основном потоке для отправки сообщения об ошибке
+                    Bukkit.getScheduler().runTask(databaseHandler.getPlugin(), () -> {
+                        sender.sendMessage(ChatColor.RED + "Произошла ошибка при разблокировке IP-адреса.");
+                    });
+                }
+            });
         } else {
-            // Проверяем, забанен ли игрок
-            if (!databaseHandler.isPlayerBanned(targetNameOrIP)) {
-                sender.sendMessage(ChatColor.RED + "Игрок " + targetNameOrIP + " не заблокирован.");
-                return true;
-            }
+            // Асинхронно проверяем, забанен ли игрок
+            CompletableFuture<Boolean> isBannedFuture = databaseHandler.isPlayerBannedAsync(targetNameOrIP);
 
-            // Выполняем разбан по нику
-            databaseHandler.unbanPlayer(targetNameOrIP);
+            Bukkit.getScheduler().runTaskAsynchronously(databaseHandler.getPlugin(), () -> {
+                try {
+                    if (!isBannedFuture.get()) {
+                        // Выполняем в основном потоке для отправки сообщения
+                        Bukkit.getScheduler().runTask(databaseHandler.getPlugin(), () -> {
+                            sender.sendMessage(ChatColor.RED + "Игрок " + targetNameOrIP + " не заблокирован.");
+                        });
+                        return;
+                    }
 
-            sender.sendMessage(ChatColor.GREEN + "Игрок " + targetNameOrIP + " был разблокирован.");
-            Bukkit.broadcastMessage(ChatColor.GREEN + "Игрок " + targetNameOrIP +
-                    ChatColor.GREEN + " был разблокирован администратором " + senderName);
+                    // Выполняем разбан по нику (асинхронно)
+                    databaseHandler.unbanPlayer(targetNameOrIP);
+
+                    // Уведомляем игроков (в основном потоке)
+                    Bukkit.getScheduler().runTask(databaseHandler.getPlugin(), () -> {
+                        sender.sendMessage(ChatColor.GREEN + "Игрок " + targetNameOrIP + " был разблокирован.");
+                        Bukkit.broadcastMessage(ChatColor.GREEN + "Игрок " + targetNameOrIP +
+                                ChatColor.GREEN + " был разблокирован администратором " + senderName);
+                    });
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                    // Выполняем в основном потоке для отправки сообщения об ошибке
+                    Bukkit.getScheduler().runTask(databaseHandler.getPlugin(), () -> {
+                        sender.sendMessage(ChatColor.RED + "Произошла ошибка при разблокировке игрока.");
+                    });
+                }
+            });
         }
 
         return true;

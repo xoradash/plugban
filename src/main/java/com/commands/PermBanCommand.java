@@ -40,7 +40,7 @@ public class PermBanCommand implements CommandExecutor {
 
         // Проверяем, является ли аргумент IP-адресом
         if (ipPattern.matcher(targetNameOrIP).matches()) {
-            // Выполняем бан по IP
+            // Выполняем бан по IP (асинхронно)
             databaseHandler.banIP(targetNameOrIP, senderName, reason);
 
             // Кикаем всех игроков с этим IP
@@ -56,13 +56,14 @@ public class PermBanCommand implements CommandExecutor {
                     ChatColor.RED + " по причине: " + ChatColor.WHITE + reason);
         } else {
             // Выполняем бан по нику
-            Player targetPlayer = Bukkit.getPlayer(targetNameOrIP);
+            Player targetPlayer = Bukkit.getPlayerExact(targetNameOrIP);
             UUID targetUUID = null;
 
             if (targetPlayer != null) {
                 targetUUID = targetPlayer.getUniqueId();
             }
 
+            // Асинхронный бан
             databaseHandler.banPlayer(targetNameOrIP, targetUUID, senderName, reason);
 
             if (targetPlayer != null) {
