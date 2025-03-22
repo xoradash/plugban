@@ -1,0 +1,12 @@
+# Настройки базы данных
+database:
+  # Хост MySQL/MariaDB
+  host: localhost
+  # Порт MySQL/MariaDB
+  port: 3306
+  # Имя базы данных
+  name: minecraft
+  # Имя пользователя
+  user: root
+  # Пароль
+  password: ""

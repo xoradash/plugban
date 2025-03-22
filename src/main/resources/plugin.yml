@@ -1,4 +1,20 @@
 name: plugban
 version: '1.0-SNAPSHOT'
 main: com.plugban
-api-version: '1.20'
+api-version: '1.16'
+commands:
+  permban:
+    description: Permanently ban a player by nickname or IP
+    usage: /permban [nick/ip] [reason]
+    permission: plugban.permban
+  unpermban:
+    description: Remove a permanent ban from a player or IP
+    usage: /unpermban [nick/ip]
+    permission: plugban.unpermban
+permissions:
+  plugban.permban:
+    description: Allows to permanently ban players
+    default: op
+  plugban.unpermban:
+    description: Allows to remove permanent bans
+    default: op
