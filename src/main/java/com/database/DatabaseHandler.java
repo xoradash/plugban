@@ -121,6 +121,56 @@ public class DatabaseHandler {
         return future;
     }
 
+    // НОВЫЙ МЕТОД: Асинхронное получение причины бана игрока
+    public CompletableFuture<String> getPlayerBanReasonAsync(String playerName) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+
+        runAsync(() -> {
+            try (Connection conn = getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT reason FROM player_bans WHERE player_name = ?")) {
+
+                stmt.setString(1, playerName);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        future.complete(rs.getString("reason"));
+                    } else {
+                        future.complete("Неизвестно");
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Ошибка при получении причины бана игрока", e);
+                future.complete("Ошибка при получении причины");
+            }
+        });
+
+        return future;
+    }
+
+    // НОВЫЙ МЕТОД: Асинхронное получение причины бана IP
+    public CompletableFuture<String> getIPBanReasonAsync(String ip) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+
+        runAsync(() -> {
+            try (Connection conn = getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT reason FROM ip_bans WHERE ip = ?")) {
+
+                stmt.setString(1, ip);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        future.complete(rs.getString("reason"));
+                    } else {
+                        future.complete("Неизвестно");
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Ошибка при получении причины IP-бана", e);
+                future.complete("Ошибка при получении причины");
+            }
+        });
+
+        return future;
+    }
+
     private void createTables() {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {

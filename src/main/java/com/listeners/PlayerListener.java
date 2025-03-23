@@ -24,16 +24,14 @@ public class PlayerListener implements Listener {
         InetAddress address = event.getAddress();
         String ip = address.getHostAddress();
 
-        // Создаем Future для проверки бана игрока и IP
-        CompletableFuture<Boolean> playerBannedFuture = databaseHandler.isPlayerBannedAsync(playerName);
-        CompletableFuture<Boolean> ipBannedFuture = databaseHandler.isIPBannedAsync(ip);
-
         try {
             // Проверяем, забанен ли игрок по имени
+            CompletableFuture<Boolean> playerBannedFuture = databaseHandler.isPlayerBannedAsync(playerName);
             if (playerBannedFuture.get()) {
-                // Этот метод вызывается асинхронно, поэтому мы можем использовать get()
-                // В реальном сервере это не вызовет блокировку основного потока
-                String reason = databaseHandler.getPlayerBanReason(playerName);
+                // Получаем причину бана асинхронно
+                CompletableFuture<String> reasonFuture = databaseHandler.getPlayerBanReasonAsync(playerName);
+                String reason = reasonFuture.get(); // Безопасно, т.к. мы находимся в асинхронном обработчике
+
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED,
                         ChatColor.RED + "Вы заблокированы на сервере!\n" +
                                 ChatColor.YELLOW + "Причина: " + ChatColor.WHITE + reason);
@@ -41,8 +39,12 @@ public class PlayerListener implements Listener {
             }
 
             // Проверяем, забанен ли IP
+            CompletableFuture<Boolean> ipBannedFuture = databaseHandler.isIPBannedAsync(ip);
             if (ipBannedFuture.get()) {
-                String reason = databaseHandler.getIPBanReason(ip);
+                // Получаем причину IP-бана асинхронно
+                CompletableFuture<String> reasonFuture = databaseHandler.getIPBanReasonAsync(ip);
+                String reason = reasonFuture.get(); // Безопасно, т.к. мы находимся в асинхронном обработчике
+
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED,
                         ChatColor.RED + "Ваш IP-адрес заблокирован на сервере!\n" +
                                 ChatColor.YELLOW + "Причина: " + ChatColor.WHITE + reason);
